@@ -1,7 +1,8 @@
 import pandas as pd
-from .config import RAW_DIR, PROCESSED_DIR, SOURCES, COLUMNS
+import numpy as np
+from .config import RAW_DIR, PROCESSED_DIR, EXTERNAL_DIR, SOURCES, COLUMNS
 
-def load_one_csv(sourcename, processed=False):
+def load_one_csv(sourcename,sourcefile="raw"):
     """
     Loads one csv FAO data file based on the sourcename. If processed=True,
     it returns the csv file that has been cleaned. If False, it loads the raw
@@ -12,12 +13,15 @@ def load_one_csv(sourcename, processed=False):
         - processed (bool, opt): indicates if returns the raw or processed csv
 
     Returns:
+
         - csv_file (pd.Dataframe): dataframe containing data (raw or processed)
     """
-    if processed:
+    if sourcefile=="processed":
         path = PROCESSED_DIR / f"{sourcename}_processed.csv"
-    else:
+    elif sourcefile=="raw":
         path = RAW_DIR / f"{sourcename}.csv"
+    elif sourcefile=="external":
+        path = EXTERNAL_DIR / f"{sourcename}.csv"
 
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
@@ -40,7 +44,7 @@ def load_raw():
 
     for sourcename in SOURCES:
         try:
-            dict_df[sourcename] = load_one_csv(sourcename, processed=False)
+            dict_df[sourcename] = load_one_csv(sourcename, sourcefile="raw")
             print(f"✅ {sourcename} loaded.")
         except FileNotFoundError as e:
             print(f"Error, file not found ({sourcename}) → {e}")
@@ -104,7 +108,7 @@ def load_processed(strategy="keep"):
         save_processed(clean_df)
     else:
         try:
-            clean_df = {sourcename: load_one_csv(sourcename, processed=True) for sourcename in SOURCES}
+            clean_df = {sourcename: load_one_csv(sourcename, sourcefile="processed") for sourcename in SOURCES}
             print("✅ Loaded processed data from disk")
         except FileNotFoundError as e:
             print(f"Error, file not found - {e}")
@@ -122,3 +126,41 @@ def load_processed(strategy="keep"):
     clean_df = {key: strategies[strategy](df) for key, df in clean_df.items()}
 
     return clean_df
+
+def load_prod_data_utils():
+    """
+    Load all processed dataframes needed to run analysis on production data
+
+    Args:
+        - None
+
+    Returns:
+        - tuple(pd.DataFrame, np.ndarray, np.ndarray): FAO production data DataFrame, FAO Country Groups, FAO Item Groups
+    """
+    paths = {
+        "Processed production data": PROCESSED_DIR / "Production_Crops_Livestock_processed.csv",
+        "Country groups": EXTERNAL_DIR / "country_groups.csv",
+        "Item groups":EXTERNAL_DIR / "item_groups.csv"
+    }
+
+    missing_files = [pathname for pathname, path in paths.items() if not path.exists()]
+
+    if missing_files:
+        raise FileNotFoundError(f"File(s) not found: {', '.join(missing_files)}")
+
+    # Load prod data in Gtons
+    df_prod = pd.read_csv(paths["Processed production data"])
+    df_prod = df_prod[df_prod["Unit"]=="t"]
+    df_prod["Value"] /= 1e9
+
+    # Load Country Groups and adding China, mainland as one of them
+    df_country_groups = pd.read_csv(paths["Country groups"])
+    country_groups = np.append(df_country_groups["Country Group"].unique(),"China, mainland")
+
+    # Load Item Groups
+    df_item_groups = pd.read_csv(paths["Item groups"])
+    item_groups = df_item_groups["Item Group"].unique()
+
+    print("✅ Data loaded for production")
+
+    return df_prod, country_groups, item_groups

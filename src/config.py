@@ -16,3 +16,7 @@ COLUMNS = {
     "Emissions_Totals": ["Area", "Item", "Element", "Year", "Unit", "Value"],
     "Food_Balance": ["Area", "Item", "Element", "Year", "Unit", "Value"]
 }
+
+FORMER_USSR_COUNTRIES = ['Uzbekistan', 'Kazakhstan', 'Belarus', 'Azerbaijan',
+       'Lithuania', 'Tajikistan', 'Turkmenistan', 'Kyrgyzstan',
+       'Republic of Moldova', 'Latvia', 'Armenia', 'Estonia', 'Georgia']
