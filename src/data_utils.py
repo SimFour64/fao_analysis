@@ -161,6 +161,6 @@ def load_prod_data_utils():
     df_item_groups = pd.read_csv(paths["Item groups"])
     item_groups = df_item_groups["Item Group"].unique()
 
-    print("✅ Data loaded for production")
+    print("✅ Data loaded for agricultural production")
 
     return df_prod, country_groups, item_groups
